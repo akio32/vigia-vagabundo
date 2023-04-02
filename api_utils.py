@@ -29,12 +29,12 @@ def consulta_propostas():
     response = requests.get(url='https://dadosabertos.camara.leg.br/api/v2/proposicoes?ano=2022&siglaTipo=PL&itens=100')
 
     # Inicializa lista dos resultados
-    ids_proposicoes = {}
     keep_loop = True
     count = 0
 
     while keep_loop:
 
+        ids_proposicoes = {}
         count = count + 1
 
         print(f"Iteração {count}")
