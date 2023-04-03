@@ -2,6 +2,11 @@
 import requests
 import csv
 import pandas as pd
+import logging
+import boto3
+from botocore.exceptions import ClientError
+import os
+
 
 # Função que realiza chamada de API e retorna o resultado em JSON
 def call_api(url, headers=None, params=None):
@@ -68,7 +73,9 @@ def consulta_propostas():
 
         df = pd.DataFrame.from_dict(list_detalhes, orient='columns')
 
-        df.to_csv(f'propostas_2020_arq{count}.csv', sep='|', index=False)
+        # df.to_csv(f'propostas_2022_arq{count}.csv', sep='|', index=False)
+
+        upload_response = upload_file(df=df, bucket_name='vigiavagabundo', folder_name='propostas', object_name=f'propostas_2022_arq{count}.csv')
 
         # Faz requisição para a API e obtém as informações das proposições em tramitação
         response = requests.get(url=next_request)
@@ -91,3 +98,30 @@ def consulta_detalhes_propostas(ids_proposicoes):
             print('Erro ao acessar a API')
 
     return detalhes_proposicoes
+
+
+def upload_file(df, bucket_name, folder_name, object_name):
+    """Upload a file to an S3 bucket
+
+    :param df: Pandas Dataframe to upload
+    :param folder: Bucket to upload to
+    :param bucket_name: Folder to upload to
+    :param object_name: S3 object name
+    :return: True if file was uploaded, else False
+    """
+
+    # Upload the file
+    # Create a session using the specified configuration file
+    session = boto3.Session(profile_name='default')
+    s3_client = session.client('s3')
+
+    try:
+        # response = s3_client.upload_file(file_name, bucket, object_name)
+
+        # Convert the DataFrame to CSV and upload to S3
+        csv_buffer = df.to_csv(sep='|', index=False)
+        s3_object = s3_client.put_object(Bucket=bucket_name, Key=f"{folder_name}/{object_name}", Body=csv_buffer.encode())
+    except ClientError as e:
+        logging.error(e)
+        return False
+    return True
