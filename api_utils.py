@@ -28,10 +28,13 @@ def call_api(url, headers=None, params=None):
         return error
 
 # Função que retorna uma lista de proposicoes, dados macro
+
+
 def consulta_propostas():
 
     # Faz requisição para a API e obtém as informações das proposições em tramitação
-    response = requests.get(url='https://dadosabertos.camara.leg.br/api/v2/proposicoes?ano=2022&siglaTipo=PL&itens=100')
+    response = requests.get(
+        url='https://dadosabertos.camara.leg.br/api/v2/proposicoes?ano=2022&siglaTipo=PL&itens=100')
 
     # Inicializa lista dos resultados
     keep_loop = True
@@ -43,7 +46,7 @@ def consulta_propostas():
         count = count + 1
 
         print(f"Iteração {count}")
-    
+
         # Verifica se a requisição foi bem sucedida
         if response.status_code == 200:
             keep_loop = True
@@ -58,7 +61,7 @@ def consulta_propostas():
         for proposicao in proposicoes:
             ids_proposicoes[proposicao['id']] = proposicao['uri']
 
-        #Verifica quantidade de paginas para consulta
+        # Verifica quantidade de paginas para consulta
         check_next = response.json()['links']
 
         for next in check_next:
@@ -73,9 +76,8 @@ def consulta_propostas():
 
         df = pd.DataFrame.from_dict(list_detalhes, orient='columns')
 
-        # df.to_csv(f'propostas_2022_arq{count}.csv', sep='|', index=False)
-
-        upload_response = upload_file(df=df, bucket_name='vigiavagabundo', folder_name='propostas', object_name=f'propostas_2022_arq{count}.csv')
+        upload_response = upload_file(df=df, bucket_name='vigiavagabundo',
+                                      folder_name='propostas', object_name=f'propostas_2022_arq{count}.csv')
 
         # Faz requisição para a API e obtém as informações das proposições em tramitação
         response = requests.get(url=next_request)
@@ -85,7 +87,7 @@ def consulta_propostas():
 
 # Função que retorna uma lista detalhaada das proposições passadas via parametro "ids_proposicoes"
 def consulta_detalhes_propostas(ids_proposicoes):
-    
+
     detalhes_proposicoes = []
 
     for id_proposicao in ids_proposicoes:
@@ -93,7 +95,7 @@ def consulta_detalhes_propostas(ids_proposicoes):
         response = requests.get(ids_proposicoes[id_proposicao])
 
         if response.status_code == 200:
-            detalhes_proposicoes.append(response.json()['dados']) 
+            detalhes_proposicoes.append(response.json()['dados'])
         else:
             print('Erro ao acessar a API')
 
@@ -120,7 +122,8 @@ def upload_file(df, bucket_name, folder_name, object_name):
 
         # Convert the DataFrame to CSV and upload to S3
         csv_buffer = df.to_csv(sep='|', index=False)
-        s3_object = s3_client.put_object(Bucket=bucket_name, Key=f"{folder_name}/{object_name}", Body=csv_buffer.encode())
+        s3_object = s3_client.put_object(
+            Bucket=bucket_name, Key=f"{folder_name}/{object_name}", Body=csv_buffer.encode())
     except ClientError as e:
         logging.error(e)
         return False
