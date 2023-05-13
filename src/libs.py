@@ -1,35 +1,67 @@
 # Importação das bibliotecas a serem utilizadas
 import requests
-import csv
-import pandas as pd
 import logging
+import time
 import boto3
 from botocore.exceptions import ClientError
-import os
 
-
-# Função que realiza chamada de API e retorna o resultado em JSON
-def call_api(url, headers=None, params=None):
+def make_get_request(url, params=None, headers=None):
     try:
-        # Faz requisição para a API e obtém as informações das proposições em tramitação
-        response = requests.get(url, headers=headers, params=params)
-        return response.json()
+        response = requests.get(url, params=params, headers=headers)
+        response.raise_for_status()  # Lança uma exceção se a resposta não for bem-sucedida
+        return response.json()  # Retorna a resposta em formato JSON
     except requests.exceptions.RequestException as e:
-        # Log do erro
-        print(f"An error occurred: {e}")
+        print(f"Erro durante a chamada GET: {e}")
+        return None
 
-        # Retorna o objeto de erro
-        error = {
-            "message": str(e),
-            "status_code": response.status_code if response else None,
-            "url": url,
-            "headers": headers
-        }
-        return error
+def make_post_request(url, data=None, headers=None):
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        response.raise_for_status()  # Lança uma exceção se a resposta não for bem-sucedida
+        return response.json()  # Retorna a resposta em formato JSON
+    except requests.exceptions.RequestException as e:
+        print(f"Erro durante a chamada POST: {e}")
+        return None
+    
+def upload_s3_object(json_string, aws_profile, bucket_name, folder_name, object_name):
+    """Upload an object to an S3 bucket
+
+    :param json_string: JSON to upload
+    :param folder: Bucket to upload to
+    :param bucket_name: Folder to upload to
+    :param object_name: S3 object name
+    :return: True if object was uploaded, else False
+    """
+
+    # Create a session using the specified configuration file
+    if aws_profile is None:
+        session = boto3.Session()
+    else:
+        session = boto3.Session(profile_name=aws_profile)
+
+    s3_client = session.client('s3')
+
+    try:
+        # Put object into the S3 bucker
+        s3_object = s3_client.put_object(
+            Bucket=bucket_name, Key=f"{folder_name}/{object_name}", Body=json_string)
+
+        return s3_object
+        
+    except ClientError as e:
+        logging.error(e)
+        return False
+
+def tempo_de_execucao(funcao):
+    def wrapper(event, context):
+        inicio = time.time()
+        funcao(event, context)
+        fim = time.time()
+        tempo_execucao = (fim - inicio) / 60.0
+        print("Tempo de execução:", tempo_execucao, "minutos")
+    return wrapper
 
 # Função que retorna uma lista de proposicoes, dados macro
-
-
 def consulta_propostas():
 
     # Faz requisição para a API e obtém as informações das proposições em tramitação
