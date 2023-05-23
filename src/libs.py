@@ -57,6 +57,12 @@ def upload_s3_object(content, profile, bucket, folder, filename):
         logging.error(e)
         return False
 
+def save_file(content, file_name, file_type):
+    with open(f'{file_name}.{file_type}', 'wb') as file:
+        file.write(content.content)
+    print(f'File saved at {file_name}.{file_type}')
+        
+
 def tempo_de_execucao(funcao):
     def wrapper(event, context):
         inicio = time.time()

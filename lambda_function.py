@@ -1,73 +1,85 @@
+import os
+import json
 from src import libs
 
 def lambda_handler(events, context):
-    url = 'https://dadosabertos.camara.leg.br/api/v2/proposicoes?ano=2022&siglaTipo=PL&itens=10'
 
-# Função que retorna uma lista de proposicoes, dados macro
+    consulta_propostas()
+
+# Function to return a list of propositions
 def consulta_propostas(): 
 
-    url = 'https://dadosabertos.camara.leg.br/api/v2/proposicoes?ano=2022&siglaTipo=PL&itens=10'
+    url = 'https://dadosabertos.camara.leg.br/api/v2/proposicoes?ano=2022&siglaTipo=PL&itens=100'
     
     headers = {
         'Accept' : 'application/json'
     }
 
-    # Faz requisição para a API e obtém as informações das proposições em tramitação
-    response = libs.make_get_request(path=url, headers=headers)  
+    file_count = 0
+    keep = True
 
+    while keep:
+        
+        # Increses the count
+        file_count = file_count + 1
 
-def make_get_request(url, params=None, headers=None):
+        # Make the request API 
+        response = libs.make_get_request(url=url, headers=headers)
 
-    requests.get(
-        url='https://dadosabertos.camara.leg.br/api/v2/proposicoes?ano=2022&siglaTipo=PL&itens=100')
+        href_last = []
 
-    # Inicializa lista dos resultados
-    keep_loop = True
-    count = 0
+        # Look for the next call, if exists
+        for links in response.json()['links']:
+            if links.get('rel') in ['self', 'last']:
+                href = links.get('href')
+                href_last.append(href)
+            if 'next' in links.values():
+                url = links['href']
+        
+        keep = (len(set(href_last)) == len(href_last))
 
-    while keep_loop:
+        # Save JSON file
+        libs.save_file(response, 'propostas_camara_' + str(file_count).zfill(6), 'json')
 
-        ids_proposicoes = {}
-        count = count + 1
+    valores_id = []
+    valores_ementa = []
 
-        print(f"Iteração {count}")
+    for arquivo in os.listdir('/home/misteryoh/Coding/'):
+        if arquivo.endswith('.json'):
+            caminho_arquivo = os.path.join('/home/misteryoh/Coding/', arquivo)
+            with open(caminho_arquivo, 'r') as arquivo_json:
+                dados = json.load(arquivo_json)
+                for dicionario in dados['dados']:
+                    valor_id = dicionario.get('id')
+                    valor_ementa = dicionario.get('ementa')
+                    if valor_id is not None:
+                        valores_id.append(valor_id)
+                    if valor_ementa is not None:
+                        valores_ementa.append(valor_ementa)    
 
-        # Verifica se a requisição foi bem sucedida
-        if response.status_code == 200:
-            keep_loop = True
-        else:
-            print('Erro ao acessar a API')
-            return []
+    print(valores_id)
 
-        # Arquivo JSON retornado pela API
-        proposicoes = response.json()['dados']
+    # dados        : list<dict>
+    # dados.id     : int
+    # dados.uri    : string
+    # dados.ementa : string
+    # links        : list<dict>
+    # links.rel    : string (self, next, first, last)
+    # links.href   : string
 
-        # Loop na lista para extrair os IDs e URIs das proposições e retorna um dicionário
-        for proposicao in proposicoes:
-            ids_proposicoes[proposicao['id']] = proposicao['uri']
+   
 
-        # Verifica quantidade de paginas para consulta
-        check_next = response.json()['links']
+   #     list_detalhes = consulta_detalhes_propostas(ids_proposicoes)
 
-        for next in check_next:
-            if next['rel'] == 'next':
-                keep_loop = True
-                next_request = next['href']
-                break
-            else:
-                keep_loop = False
+   #     df = pd.DataFrame.from_dict(list_detalhes, orient='columns')
 
-        list_detalhes = consulta_detalhes_propostas(ids_proposicoes)
+   #     upload_response = upload_file(df=df, bucket_name='vigiavagabundo',
+   #                                   folder_name='propostas', object_name=f'propostas_2022_arq{count}.csv')
 
-        df = pd.DataFrame.from_dict(list_detalhes, orient='columns')
+   #     # Faz requisição para a API e obtém as informações das proposições em tramitação
+   #     response = requests.get(url=next_request)
 
-        upload_response = upload_file(df=df, bucket_name='vigiavagabundo',
-                                      folder_name='propostas', object_name=f'propostas_2022_arq{count}.csv')
-
-        # Faz requisição para a API e obtém as informações das proposições em tramitação
-        response = requests.get(url=next_request)
-
-    return ids_proposicoes
+   # return ids_proposicoes
 
 
 # Função que retorna uma lista detalha da das proposições passadas via parametro "ids_proposicoes"
@@ -86,4 +98,4 @@ def consulta_detalhes_propostas(ids_proposicoes):
 
     return detalhes_proposicoes
 
-
+lambda_handler(None, None)
