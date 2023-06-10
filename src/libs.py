@@ -3,6 +3,7 @@ import requests
 import logging
 import time
 import boto3
+import pandas as pd
 from botocore.exceptions import ClientError
 
 ################################################################
