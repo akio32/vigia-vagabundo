@@ -1,42 +1,32 @@
-import os
+import pandas as pd
+import requests
 import json
 from src import libs
 
 def lambda_handler(events, context):
     
+    #Etapa 1 - Consulta Propostas
+    consulta_propostas(events=events)
+
+    
+
+# Função que retorna uma lista de proposicoes, dados macro
+def consulta_propostas(events):
+
     url = events['url']
     params = events['params']
 
-    response = libs.make_get_request(url=url, params=params)
-
-events = {
-    'url' : 'https://dadosabertos.camara.leg.br/api/v2/proposicoes',
-    'params' : {
-        'siglaTipo' : 'PL',
-        'ano' : '2023',
-        'itens' : '100',
-        'ordem' : 'ASC',
-        'ordenarPor' : 'id'
-    }
-}
-
-# Função que retorna uma lista de proposicoes, dados macro
-def consulta_propostas():
-
     # Faz requisição para a API e obtém as informações das proposições em tramitação
-    response = requests.get(
-        url='https://dadosabertos.camara.leg.br/api/v2/proposicoes?ano=2022&siglaTipo=PL&itens=100')
-
+    response = libs.make_get_request(url=url, params=params)
+    
     # Inicializa lista dos resultados
     keep_loop = True
     count = 0
 
     while keep_loop:
 
-        ids_proposicoes = {}
         count = count + 1
-
-        print(f"Iteração {count}")
+        ids_proposicoes = {}
 
         # Verifica se a requisição foi bem sucedida
         if response.status_code == 200:
@@ -64,16 +54,15 @@ def consulta_propostas():
                 keep_loop = False
 
         list_detalhes = consulta_detalhes_propostas(ids_proposicoes)
+        upload_file = json.dumps(list_detalhes)
 
-        df = pd.DataFrame.from_dict(list_detalhes, orient='columns')
-
-        upload_response = upload_file(df=df, bucket_name='vigiavagabundo',
-                                      folder_name='propostas', object_name=f'propostas_2022_arq{count}.csv')
+        upload_response = libs.upload_s3_object(content=upload_file, profile='default', bucket='neosentinel',
+                                      folder='propostas', filename=f'propostas_2023_arq{count}.json')
 
         # Faz requisição para a API e obtém as informações das proposições em tramitação
         response = requests.get(url=next_request)
 
-    return ids_proposicoes
+    return True
 
 
 # Função que retorna uma lista detalhaada das proposições passadas via parametro "ids_proposicoes"
