@@ -9,7 +9,6 @@ def lambda_handler(events, context):
     consulta_propostas(events=events)
 
     
-
 # Função que retorna uma lista de proposicoes, dados macro
 def consulta_propostas(events):
 

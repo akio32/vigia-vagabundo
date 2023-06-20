@@ -43,7 +43,7 @@ def upload_s3_object(content, profile, bucket, folder, filename):
     if profile is None:
         session = boto3.Session()
     else:
-        session = boto3.Session(profile_name=profile)
+        session = boto3.Session(profile_name=profile, region_name='sa-east-1')
 
     s3_client = session.client('s3')
 
