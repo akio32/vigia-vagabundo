@@ -1,5 +1,3 @@
-import pandas as pd
-import requests
 import json
 from src import libs
 
@@ -16,7 +14,7 @@ def consulta_propostas(events):
     params = events['params']
 
     # Faz requisição para a API e obtém as informações das proposições em tramitação
-    response = libs.make_get_request(url=url, params=params)
+    response = libs.make_request(url=url, method="GET", dados=params)
     
     # Inicializa lista dos resultados
     keep_loop = True
@@ -59,7 +57,7 @@ def consulta_propostas(events):
                                       folder='propostas', filename=f'propostas_2023_arq{count}.json')
 
         # Faz requisição para a API e obtém as informações das proposições em tramitação
-        response = requests.get(url=next_request)
+        response = libs.make_request(url=next_request, method="GET")
 
     return True
 
@@ -71,7 +69,7 @@ def consulta_detalhes_propostas(ids_proposicoes):
 
     for id_proposicao in ids_proposicoes:
 
-        response = requests.get(ids_proposicoes[id_proposicao])
+        response = libs.make_request(url=ids_proposicoes[id_proposicao], method="GET")
 
         if response.status_code == 200:
             detalhes_proposicoes.append(response.json()['dados'])

@@ -3,31 +3,27 @@ import requests
 import logging
 import time
 import boto3
-import pandas as pd
 from botocore.exceptions import ClientError
 
 ################################################################
 # Reusable functions
 ################################################################
 
-def make_get_request(url, params=None, headers=None):
+def make_request(url, method, dados=None, headers=None):
     try:
-        response = requests.get(url, params=params, headers=headers)
+        if method.upper() == "GET":
+            response = requests.get(url, params=dados, headers=headers)
+        elif method.upper() == "POST":
+            response = requests.post(url, json=dados, headers=headers)
+        else:
+            raise ValueError("Método de requisição inválido. Use GET ou POST.")
+        
         response.raise_for_status()  # Lança uma exceção se a resposta não for bem-sucedida
         return response  # Retorna a resposta
     except requests.exceptions.RequestException as e:
         print(f"Erro durante a chamada GET: {e}")
         return None
 
-def make_post_request(url, data=None, headers=None):
-    try:
-        response = requests.post(url, json=data, headers=headers)
-        response.raise_for_status()  # Lança uma exceção se a resposta não for bem-sucedida
-        return response  # Retorna a resposta    
-    except requests.exceptions.RequestException as e:
-        print(f"Erro durante a chamada POST: {e}")
-        return None
-    
 def upload_s3_object(content, profile, bucket, folder, filename):
     """Upload an object to an S3 bucket
 
@@ -63,7 +59,6 @@ def save_file(content, file_name, file_type):
         file.write(content.content)
     print(f'File saved at {file_name}.{file_type}')
         
-
 def tempo_de_execucao(funcao):
     def wrapper(event, context):
         inicio = time.time()

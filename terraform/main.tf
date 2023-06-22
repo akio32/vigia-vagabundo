@@ -10,29 +10,19 @@ terraform {
 }
 
 data "aws_iam_role" "lambda_role" {
-  name = "AWSRoleForLambdaFgvEmissions"
+  name = "AWSRoleForStudyLambda"
 }
 
 data "archive_file" "lambda_zip" {
   type = "zip"
-  source_file = "lambda_function.py"
-  output_path = "neo-sentinel.zip"
+  output_path = "${path.module}/neo-sentinel.zip"
+  source_dir = "${path.module}"
 }
 
 resource "aws_lambda_function" "lambda_function" {
   filename = "neo-sentinel.zip"
-  function_name = "neo-sentinel"
-  role = aws_iam_role.lambda_role.arn
+  function_name = "lambda_function"
+  role = data.aws_iam_role.lambda_role.arn
   handler = "lambda_handler"
-  runtime = "python3.11"
+  runtime = "python3.10"
 }
-
-# resource "aws_instance" "app_server" {
-#  ami           = "ami-0da62eb5869c785b9"
-#  instance_type = "t2.micro"
-#
-#  tags = {
-#    Name = "ExampleAppServerInstance"
-#  }
-# }
-
