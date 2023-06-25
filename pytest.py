@@ -1,4 +1,3 @@
-import pandas as pd
 import lambda_function
 
 events = {
