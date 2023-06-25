@@ -1,7 +1,7 @@
 import json
 from src import libs
 
-def lambda_handler(events, context):
+def lambda_handler(events, context=None):
     
     #Etapa 1 - Consulta Propostas
     consulta_propostas(events=events)
